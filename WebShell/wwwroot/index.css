@@ -1,0 +1,67 @@
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+body {
+  background: black;
+  font-family: monospace;
+  font-size: 16px;
+  padding: 20px 15px;
+}
+ul {
+  list-style: none;
+  & li {
+    color: coral;
+    margin-bottom: 20px;
+    & pre {
+      padding: 5px 0;
+      color: white;
+    }
+  }
+}
+
+.command {
+  display: grid;
+  grid-template-columns: 16ch 1fr;
+  position: relative;
+}
+input {
+  border: none;
+  background: transparent;
+  outline: transparent;
+
+  color: white;
+  font-family: inherit;
+  font-size: inherit;
+  caret-color: transparent;
+
+  cursor: default;
+}
+label {
+  display: block;
+  color: coral;
+}
+.log {
+  color: white;
+  padding: 10px 0;
+}
+#status {
+  color: aqua;
+}
+#caret {
+  animation: blink 1s step-end infinite;
+  border-bottom: 4px solid white;
+  position: absolute;
+  left: 16ch;
+  cursor: default;
+}
+@keyframes blink {
+  from,
+  to {
+    border-color: transparent;
+  }
+  50% {
+    border-color: #fff;
+  }
+}
