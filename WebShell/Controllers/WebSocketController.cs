@@ -24,50 +24,58 @@ public class WebSocketController : ControllerBase
 
     private static async Task Echo(WebSocket webSocket)
     {
-        var shell = new Process();
-
-        shell.StartInfo = new ProcessStartInfo()
-        {
-            FileName = "cmd.exe",
-            UseShellExecute = false,
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-
-        shell.Start();
-
         var buffer = new byte[1024 * 4];
         var receiveResult = await webSocket.ReceiveAsync(
             new ArraySegment<byte>(buffer), CancellationToken.None);
 
         while (!receiveResult.CloseStatus.HasValue)
         {
+            var shell = new Process();
+            var result = "";
+
+            shell.StartInfo = new ProcessStartInfo()
+            {
+                FileName = "cmd.exe",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+
+            shell.Start();
+            shell.BeginOutputReadLine();
+
+
             /* Code for send */
             var command = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
-            // var stdOutput = new StringBuilder();
-            // shell.OutputDataReceived += (sender, args) => stdOutput.AppendLine(args.Data);
 
             Console.WriteLine($"Server command : {command}");
 
-            shell.StandardInput.WriteLine(command);
+            try
+            {
+                shell.StandardInput.WriteLine(command);
+                shell.OutputDataReceived += (sender, e) => { result += e.Data + "\n"; };
 
-            // shell.BeginOutputReadLine();
-            // string? result;
+                shell.StandardInput.WriteLine("exit");
+                shell.WaitForExit();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+
+
             // var error =  shell.StandardError.ReadLine();
             // Console.WriteLine("ERROR" + error);
 
             // var result =  shell.StandardOutput.ReadToEnd();
             // var result = stdOutput.ToString();
-            var result = shell.StandardOutput.ReadLine();
+            // var result = shell.StandardOutput.ReadLine();
             // shell.WaitForExit();
 
 
-            /*while (shell.StandardOutput.ReadLine() != null)
-            {
-
-            }*/
-
+            Console.WriteLine(result);
 
             var mess = Encoding.UTF8.GetBytes(result);
 
@@ -82,7 +90,6 @@ public class WebSocketController : ControllerBase
                 new ArraySegment<byte>(buffer), CancellationToken.None);
         }
 
-        shell.Close();
 
         await webSocket.CloseAsync(
             receiveResult.CloseStatus.Value,
