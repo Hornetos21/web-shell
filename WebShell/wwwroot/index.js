@@ -162,6 +162,8 @@ function handleForm(e) {
       case 'exit':
         disconnectWS()
         break
+      case 'clear':
+        return list.innerHTML = ''
       case 'helpConsole':
         commandResult = `
       'start' -  Connect to server CMD
