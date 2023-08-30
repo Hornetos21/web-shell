@@ -10,182 +10,127 @@ const history = loadHistory() || []
 let flagHistory = false
 let index = history.length ? history.length - 1 : 0
 
-// WebSocket
-let ws = null
-const url = 'ws://localhost:5176/ws'
-let stateWS = ''
-let commandResult = ''
-
 // Events
 form.addEventListener('submit', handleForm)
 input.addEventListener('keydown', handleKey)
 input.addEventListener('input', handleInputStyle)
 document.addEventListener('click', handleFocus)
 
+// TODO Send Ctrl+C for cancel process 
+/*document.addEventListener('keydown', handleCancelCommand)
+
+function handleCancelCommand(e) {
+    if (e.ctrlKey && e.code === "KeyC") {
+        console.log("Control C")
+        // Ctrl+C - Отправляет сигнал SIGINT
+        ws.send("cancel")
+    }
+}*/
+
 function handleFocus() {
-  input.focus()
+    input.focus()
 }
 
 function loadHistory() {
-  return JSON.parse(sessionStorage.getItem('command'))
+    return JSON.parse(sessionStorage.getItem('command'))
 }
 
 function saveHistory(history) {
-  sessionStorage.setItem('command', JSON.stringify(history))
+    sessionStorage.setItem('command', JSON.stringify(history))
 }
 
 function handleInputStyle() {
-  let len = input.value.length
+    let len = input.value.length
 
-  caret.style.left = `calc(16ch + ${len}ch)`
+    caret.style.left = `calc(16ch + ${len}ch)`
 }
 
 function keyArrowUp() {
-  if (index === 0) return
+    if (index === 0) return
 
-  if (!flagHistory) {
-    flagHistory = true
-  } else {
-    index--
-  }
+    if (!flagHistory) {
+        flagHistory = true
+    } else {
+        index--
+    }
 }
 
 function keyArrowDown() {
-  if (index === history.length - 1) return
+    if (index === history.length - 1) return
 
-  index++
+    index++
 
-  if (!history[index]) {
-    flagHistory = false
-    index = history.length - 1
-  }
+    if (!history[index]) {
+        flagHistory = false
+        index = history.length - 1
+    }
 }
 
 function handleKey(e) {
-  if (!history.length) return
+    if (!history.length) return
 
-  if (e.code === 'ArrowUp' || e.code === 'ArrowDown') {
-    if (e.code === 'ArrowUp') {
-      e.preventDefault()
-      keyArrowUp()
-    } else if (flagHistory) {
-      keyArrowDown()
-    }
+    if (e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+        if (e.code === 'ArrowUp') {
+            e.preventDefault()
+            keyArrowUp()
+        } else if (flagHistory) {
+            keyArrowDown()
+        }
 
-    input.value = history[index]
-    handleInputStyle()
-  }
-}
-
-function updateState() {
-  if (ws) {
-    switch (ws.readyState) {
-      case WebSocket.CLOSED:
-        stateWS = 'Disconnected'
-        break
-      case WebSocket.CLOSING:
-        stateWS = 'Closing...'
-        break
-      case WebSocket.CONNECTING:
-        stateWS = 'Connecting...'
-        break
-      case WebSocket.OPEN:
-        stateWS = 'Connected'
-        break
-      default:
-        stateWS = `Unknown WebSocket State: ${ws.readyState}`
-        break
+        input.value = history[index]
+        handleInputStyle()
     }
-    status.innerText = stateWS
-  }
-}
-
-function connectWS() {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    ws = new WebSocket(url)
-    ws.onopen = () => {
-      updateState()
-      console.log(stateWS)
-    }
-    ws.onclose = () => {
-      updateState()
-      console.log(stateWS)
-    }
-    ws.onerror = (e) => {
-      updateState()
-      console.log(e)
-      console.log(`WebSocket error: ${e}`)
-      commandResult = `WebSocket error: `
-    }
-    commandResult = 'Connect'
-
-    ws.onmessage = (event) => {
-      // commandResult = event.data
-      list.lastChild.lastChild.innerText = event.data
-    }
-  } else {
-    commandResult = 'Server is already started...'
-  }
-}
-
-function disconnectWS() {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    commandResult = 'Server CMD not started'
-  } else {
-    ws.close()
-    commandResult = 'Disconnect'
-    console.log('Socket закрыт')
-  }
 }
 
 function createList(command) {
-  const li = document.createElement('li')
-  const pre = document.createElement('pre')
+    const li = document.createElement('li')
+    const pre = document.createElement('pre')
 
-  li.innerText = `$ user-command->${command}`
-  pre.innerText = commandResult
-  li.append(pre)
-  list.append(li)
+    li.innerText = `$ user-command->${command}`
+    pre.innerText = commandResult
+    li.append(pre)
+    list.append(li)
 }
 
 function handleForm(e) {
-  e.preventDefault()
-  const command = input.value.trim()
+    e.preventDefault()
+    const command = input.value.trim()
 
-  commandResult = ''
+    commandResult = ''
 
-  if (command) {
-    switch (command) {
-      case 'start':
-        connectWS()
-        break
-      case 'exit':
-        disconnectWS()
-        break
-      case 'clear':
-        return list.innerHTML = ''
-      case 'helpConsole':
-        commandResult = `
+    if (command) {
+        switch (command) {
+            case 'start':
+                connectWS(status)
+                break
+            case 'exit':
+                disconnectWS()
+                break
+            case 'clear':
+                return list.innerHTML = ''
+            case 'helpConsole':
+                commandResult = `
       'start' -  Connect to server CMD
-      'exit'  -  Disconnect server CMD`
-        break
-      default:
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(command)
-        } else {
-          commandResult = `'${command}' is not recognized as an internal command, enter 'helpConsole' for help.`
+      'exit'  -  Disconnect server CMD
+      'clear' -  Clear WebConsole`
+                break
+            default:
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(command)
+                } else {
+                    commandResult = `'${command}' is not recognized as an internal command, enter 'helpConsole' for help.`
+                }
+                break
         }
-        break
+        if (history[history.length - 1] !== command) {
+            history.push(command)
+            saveHistory(history)
+            index = history.length - 1
+        }
     }
-    if (history[history.length - 1] !== command) {
-      history.push(command)
-      saveHistory(history)
-      index = history.length - 1
-    }
-  }
-  createList(command)
+    createList(command)
 
-  form.reset()
-  updateState()
-  handleInputStyle()
+    form.reset()
+    updateState(status)
+    handleInputStyle()
 }

