@@ -4,9 +4,9 @@ namespace WebShell.Controllers;
 
 public class WebShell
 {
-    public static Process CmdProcess;
+    public  Process CmdProcess;
 
-    public static void  CommandRequest(string command)
+    public  void  CommandRequest(string command)
     {
         CmdProcess = new Process();
         CmdProcess.StartInfo = new ProcessStartInfo()
@@ -17,10 +17,15 @@ public class WebShell
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            RedirectStandardInput = true,
         };
     }
-    
-    public static void Run()
+
+    public bool CheckWrite()
+    {
+        return CmdProcess.StandardInput.BaseStream.CanWrite;
+    }
+    public  void Run()
     {
         CmdProcess.Start();
         CmdProcess.BeginOutputReadLine();

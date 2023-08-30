@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@500&display=swap');
 * {
   padding: 0;
   margin: 0;
@@ -5,7 +6,7 @@
 }
 body {
   background: black;
-  font-family: monospace;
+  font-family: 'Source Code Pro', monospace;
   font-size: 16px;
   padding: 20px 15px;
 }
@@ -17,6 +18,7 @@ ul {
     & pre {
       padding: 5px 0;
       color: white;
+      font-family: inherit;
     }
   }
 }
@@ -49,13 +51,16 @@ label {
 #status {
   color: aqua;
 }
-#caret {
+.caret {
   animation: blink 1s step-end infinite;
   border-bottom: 4px solid white;
   position: absolute;
   left: 16ch;
   cursor: default;
 }
+/*.caret--stop{*/
+/*  border-bottom: transparent;*/
+/*}*/
 @keyframes blink {
   from,
   to {

@@ -2,7 +2,7 @@
 const form = document.querySelector('#console')
 const input = form.querySelector('#input')
 const list = document.querySelector('.text')
-const caret = document.querySelector('#caret')
+const caret = document.querySelector('.caret')
 const status = document.querySelector('#status')
 
 // History
@@ -15,6 +15,8 @@ form.addEventListener('submit', handleForm)
 input.addEventListener('keydown', handleKey)
 input.addEventListener('input', handleInputStyle)
 document.addEventListener('click', handleFocus)
+document.addEventListener('mouseenter', () => caret.classList.add('caret'))
+document.addEventListener('mouseleave', () => caret.classList.remove('caret'))
 
 // TODO Send Ctrl+C for cancel process 
 /*document.addEventListener('keydown', handleCancelCommand)
@@ -80,6 +82,11 @@ function handleKey(e) {
         input.value = history[index]
         handleInputStyle()
     }
+
+// TODO create left and right handler for caret
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+
+    }
 }
 
 function createList(command) {
@@ -107,7 +114,8 @@ function handleForm(e) {
                 disconnectWS()
                 break
             case 'clear':
-                return list.innerHTML = ''
+                list.innerHTML = ''
+                break
             case 'helpConsole':
                 commandResult = `
       'start' -  Connect to server CMD
@@ -122,13 +130,16 @@ function handleForm(e) {
                 }
                 break
         }
+
         if (history[history.length - 1] !== command) {
             history.push(command)
             saveHistory(history)
             index = history.length - 1
         }
     }
-    createList(command)
+    if (command !== 'clear') {
+        createList(command)
+    }
 
     form.reset()
     updateState(status)

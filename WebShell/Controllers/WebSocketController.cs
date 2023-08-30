@@ -1,13 +1,15 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
+using System.Xml;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebShell.Controllers;
 
 public class WebSocketController : ControllerBase
 {
-    private static WebSocketReceiveResult _receiveResult = null!;
-    private static byte[] _buffer = new byte[1024 * 4];
+    private WebSocketReceiveResult _receiveResult = null!;
+    private byte[] _buffer = new byte[1024 * 4];
+    private string canWrite = "CAN_WRITE_TRUE";
 
     [Route("/ws")]
     public async Task Get()
@@ -23,11 +25,10 @@ public class WebSocketController : ControllerBase
         }
     }
 
-    private static async Task Echo(WebSocket webSocket)
+    private async Task Echo(WebSocket webSocket)
     {
         Console.WriteLine("BEGIN ECHO");
         /* PENDING RECEIVE */
-
         _receiveResult = await WS_RECEIVE(webSocket);
 
         Console.WriteLine("RECEIVE WS <-");
@@ -35,28 +36,43 @@ public class WebSocketController : ControllerBase
         /* CONNECT */
         while (!_receiveResult.CloseStatus.HasValue)
         {
+            var shell = new WebShell();
             var result = "";
             var command = Encoding.UTF8.GetString(_buffer, 0, _receiveResult.Count);
 
+
             Console.WriteLine($"SERVER COMMAND : {command}");
 
-            WebShell.CommandRequest(command);
-            WebShell.CmdProcess.OutputDataReceived += (s, e) =>
+            shell.CommandRequest(command);
+            canWrite = "CAN_WRITE_FALSE";
+            WS_SEND(webSocket, canWrite);
+
+
+            shell.CmdProcess.OutputDataReceived += (s, e) =>
             {
                 // TODO Handle Ctrl+C for cancel process
-                if (e.Data == null) return;
-                result = e.Data + "\n";
-                Console.WriteLine("WS_SEND ->");
-                WS_SEND(webSocket, result);
+                if (e.Data != null)
+                {
+                    result = e.Data + "\n";
+                    Console.WriteLine("WS_SEND ->");
+                    WS_SEND(webSocket, result);
+                }
+                else
+                {
+                    canWrite = "CAN_WRITE_TRUE";
+                    WS_SEND(webSocket, canWrite);
+                }
             };
-            WebShell.CmdProcess.ErrorDataReceived += (s, e) =>
+            shell.CmdProcess.ErrorDataReceived += (s, e) =>
             {
                 if (e.Data == null) return;
                 result = e.Data + "\n";
                 WS_SEND(webSocket, result);
             };
-            WebShell.Run();
-            
+
+            Console.WriteLine("CAN_WRITE : " + canWrite);
+            shell.Run();
+
             _receiveResult = await WS_RECEIVE(webSocket);
             Console.WriteLine("RECEIVE WS <-");
         }
@@ -66,12 +82,13 @@ public class WebSocketController : ControllerBase
         Console.WriteLine("CLOSE");
     }
 
-    private static async Task<WebSocketReceiveResult> WS_RECEIVE(WebSocket webSocket)
+    private async Task<WebSocketReceiveResult> WS_RECEIVE(WebSocket webSocket)
     {
         return await webSocket.ReceiveAsync(
             new ArraySegment<byte>(_buffer), CancellationToken.None);
     }
-    private static async void WS_SEND(WebSocket webSocket, string output)
+
+    private async void WS_SEND(WebSocket webSocket, string output)
     {
         var mess = Encoding.UTF8.GetBytes(output);
 
@@ -81,7 +98,8 @@ public class WebSocketController : ControllerBase
             _receiveResult.EndOfMessage,
             CancellationToken.None);
     }
-    private static async void WS_CLOSE(WebSocket webSocket)
+
+    private async void WS_CLOSE(WebSocket webSocket)
     {
         if (_receiveResult.CloseStatus != null)
             await webSocket.CloseAsync(

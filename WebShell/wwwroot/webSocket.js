@@ -1,10 +1,11 @@
 ﻿const URL = 'ws://localhost:5176/ws'
 
- let ws = null
+let ws = null
 let stateWS = ''
- let commandResult = ''
+let commandResult = ''
+let canWrite = true
 
- function updateState(status) {
+function updateState(status) {
     if (ws) {
         switch (ws.readyState) {
             case WebSocket.CLOSED:
@@ -27,7 +28,7 @@ let stateWS = ''
     status.innerText = stateWS
 }
 
- function connectWS(status) {
+function connectWS(status) {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         ws = new WebSocket(URL)
         ws.onopen = () => {
@@ -47,14 +48,27 @@ let stateWS = ''
         commandResult = 'Connect'
 
         ws.onmessage = (event) => {
-            list.lastChild.lastChild.innerText += event.data
+            switch (event.data) {
+                case 'CAN_WRITE_FALSE':
+                    canWrite = false
+                    caret.classList.remove('caret')
+                    break
+                case 'CAN_WRITE_TRUE':
+                    canWrite = true
+                    caret.classList.add('caret')
+                    break
+                default :
+                    list.lastChild.lastChild.innerText += event.data
+                    break
+            }
+            input.disabled = !canWrite
         }
     } else {
         commandResult = 'Server is already started...'
     }
 }
 
- function disconnectWS() {
+function disconnectWS() {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         commandResult = 'Server CMD not started'
     } else {
