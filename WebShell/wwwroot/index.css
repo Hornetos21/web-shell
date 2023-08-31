@@ -58,9 +58,9 @@ label {
   left: 16ch;
   cursor: default;
 }
-/*.caret--stop{*/
-/*  border-bottom: transparent;*/
-/*}*/
+.hide{
+  display: none;
+}
 @keyframes blink {
   from,
   to {

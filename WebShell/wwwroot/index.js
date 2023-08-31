@@ -10,24 +10,31 @@ const history = loadHistory() || []
 let flagHistory = false
 let index = history.length ? history.length - 1 : 0
 
+
+let canWrite = true
+
 // Events
 form.addEventListener('submit', handleForm)
 input.addEventListener('keydown', handleKey)
 input.addEventListener('input', handleInputStyle)
 document.addEventListener('click', handleFocus)
-document.addEventListener('mouseenter', () => caret.classList.add('caret'))
-document.addEventListener('mouseleave', () => caret.classList.remove('caret'))
+document.addEventListener('mouseenter', () => {
+    caret.classList.remove('hide')
+})
+document.addEventListener('mouseleave', () => caret.classList.add('hide'))
 
 // TODO Send Ctrl+C for cancel process 
-/*document.addEventListener('keydown', handleCancelCommand)
+// Ctrl+C - Отправляет сигнал SIGINT
+document.addEventListener('keydown', handleCancelCommand)
 
 function handleCancelCommand(e) {
     if (e.ctrlKey && e.code === "KeyC") {
         console.log("Control C")
-        // Ctrl+C - Отправляет сигнал SIGINT
-        ws.send("cancel")
+        if (!canWrite) {
+            ws.send("cancel")
+        }
     }
-}*/
+}
 
 function handleFocus() {
     input.focus()
@@ -142,6 +149,7 @@ function handleForm(e) {
     }
 
     form.reset()
-    updateState(status)
+    updateState()
     handleInputStyle()
+    handleFocus()
 }

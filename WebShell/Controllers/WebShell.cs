@@ -1,18 +1,22 @@
 ﻿using System.Diagnostics;
 
+// TODO Create Dictionary for id process and id session
 namespace WebShell.Controllers;
 
 public class WebShell
 {
-    public  Process CmdProcess;
+    
+    public Process CmdProcess;
 
-    public  void  CommandRequest(string command)
+    public void CommandRequest(string command)
     {
+        // Console.CancelKeyPress += Console_CancelKeyPress;
+
         CmdProcess = new Process();
         CmdProcess.StartInfo = new ProcessStartInfo()
         {
             FileName = "cmd.exe",
-            Arguments = @$"/C {command}",
+            Arguments = @$"/c {command}",
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardOutput = true,
@@ -21,15 +25,18 @@ public class WebShell
         };
     }
 
-    public bool CheckWrite()
+    public uint GetIdProcess()
     {
-        return CmdProcess.StandardInput.BaseStream.CanWrite;
+        return (uint)CmdProcess.Id;
     }
-    public  void Run()
+    
+    public void Run()
     {
         CmdProcess.Start();
         CmdProcess.BeginOutputReadLine();
         CmdProcess.BeginErrorReadLine();
-        CmdProcess.WaitForExitAsync(); 
+        CmdProcess.WaitForExitAsync();
+        
     }
+    
 }

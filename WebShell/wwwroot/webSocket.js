@@ -1,11 +1,11 @@
 ﻿const URL = 'ws://localhost:5176/ws'
 
 let ws = null
-let stateWS = ''
+let stateWS = 'Disconnected'
 let commandResult = ''
-let canWrite = true
 
-function updateState(status) {
+
+const updateState = () => {
     if (ws) {
         switch (ws.readyState) {
             case WebSocket.CLOSED:
@@ -28,19 +28,19 @@ function updateState(status) {
     status.innerText = stateWS
 }
 
-function connectWS(status) {
+function connectWS() {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         ws = new WebSocket(URL)
         ws.onopen = () => {
-            updateState(status)
+            updateState()
             console.log(stateWS)
         }
         ws.onclose = () => {
-            updateState(status)
+            updateState()
             console.log(stateWS)
         }
         ws.onerror = (e) => {
-            updateState(status)
+            updateState()
             console.log(e)
             console.log(`WebSocket error: ${e}`)
             commandResult = `WebSocket error: `
@@ -51,17 +51,19 @@ function connectWS(status) {
             switch (event.data) {
                 case 'CAN_WRITE_FALSE':
                     canWrite = false
-                    caret.classList.remove('caret')
+                    caret.classList.add('hide')
                     break
                 case 'CAN_WRITE_TRUE':
                     canWrite = true
-                    caret.classList.add('caret')
+                    caret.classList.remove('hide')
+                   
                     break
                 default :
                     list.lastChild.lastChild.innerText += event.data
                     break
             }
             input.disabled = !canWrite
+            input.focus()
         }
     } else {
         commandResult = 'Server is already started...'
