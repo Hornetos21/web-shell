@@ -64,6 +64,7 @@ function connectWS() {
             }
             input.disabled = !canWrite
             input.focus()
+            autoScroll()
         }
     } else {
         commandResult = 'Server is already started...'

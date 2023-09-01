@@ -6,41 +6,38 @@ const caret = document.querySelector('.caret')
 const status = document.querySelector('#status')
 
 // History
+const loadHistory = () => JSON.parse(sessionStorage.getItem('command'))
+const saveHistory = (history) => sessionStorage.setItem('command', JSON.stringify(history))
 const history = loadHistory() || []
 let flagHistory = false
 let index = history.length ? history.length - 1 : 0
 
+// Custom caret 
+let inputLength
+let indexCaret
+let inputEdit = false
+const moveCaret = (index) => caret.style.left = `calc(16ch + ${index}ch)`
 
+// Blocking input
 let canWrite = true
 
-// Events
-form.addEventListener('submit', handleForm)
-input.addEventListener('keydown', handleKey)
-input.addEventListener('input', handleInputStyle)
-document.addEventListener('click', handleFocus)
-document.addEventListener('mouseenter', () => {
-    caret.classList.remove('hide')
-})
-document.addEventListener('mouseleave', () => caret.classList.add('hide'))
-
-// TODO Send Ctrl+C for cancel process 
-// Ctrl+C - Отправляет сигнал SIGINT
-document.addEventListener('keydown', handleCancelCommand)
+// Functions
+const autoScroll = () => window.scrollTo(0, document.body.scrollHeight)
+const inputFocus = () => input.focus()
 
 function handleCancelCommand(e) {
     if (e.ctrlKey && e.code === "KeyC") {
-        console.log("Control C")
         if (!canWrite) {
             ws.send("cancel")
         }
     }
 }
 
-function handleFocus() {
+/*function handleFocus() {
     input.focus()
-}
+}*/
 
-function loadHistory() {
+/*function loadHistory() {
     return JSON.parse(sessionStorage.getItem('command'))
 }
 
@@ -48,10 +45,23 @@ function saveHistory(history) {
     sessionStorage.setItem('command', JSON.stringify(history))
 }
 
-function handleInputStyle() {
-    let len = input.value.length
+function moveCaret(index) {
+    caret.style.left = `calc(16ch + ${index}ch)`
+}*/
 
-    caret.style.left = `calc(16ch + ${len}ch)`
+function handleInputCaret(e) {
+    inputLength = input.value.length
+
+    if (inputEdit) {
+        if (e?.inputType === "insertText") {
+            indexCaret++
+        } else {
+            indexCaret--
+        }
+    } else {
+        indexCaret = inputLength
+    }
+    moveCaret(indexCaret)
 }
 
 function keyArrowUp() {
@@ -75,10 +85,26 @@ function keyArrowDown() {
     }
 }
 
+
 function handleKey(e) {
+    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+        
+        if (e.code === 'ArrowLeft') {
+            if (indexCaret === 0) return
+            inputEdit = true
+            indexCaret--
+            // moveCaret(indexCaret)
+        } else {
+            if (inputLength === indexCaret) return inputEdit = false
+            indexCaret++
+        }
+        moveCaret(indexCaret)
+    }
+
     if (!history.length) return
 
     if (e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+        inputEdit = false
         if (e.code === 'ArrowUp') {
             e.preventDefault()
             keyArrowUp()
@@ -87,12 +113,7 @@ function handleKey(e) {
         }
 
         input.value = history[index]
-        handleInputStyle()
-    }
-
-// TODO create left and right handler for caret
-    if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
-
+        handleInputCaret()
     }
 }
 
@@ -123,11 +144,12 @@ function handleForm(e) {
             case 'clear':
                 list.innerHTML = ''
                 break
-            case 'helpConsole':
+            case 'helpshell':
                 commandResult = `
-      'start' -  Connect to server CMD
-      'exit'  -  Disconnect server CMD
-      'clear' -  Clear WebConsole`
+      'start'       -   Connect to server CMD
+      'exit'        -   Disconnect server CMD
+      'clear'       -   Clear WebConsole
+      'helpshell'   -   Help`
                 break
             default:
                 if (ws && ws.readyState === WebSocket.OPEN) {
@@ -150,6 +172,15 @@ function handleForm(e) {
 
     form.reset()
     updateState()
-    handleInputStyle()
-    handleFocus()
+    handleInputCaret()
+    inputFocus()
 }
+
+// Events
+form.addEventListener('submit', handleForm)
+input.addEventListener('keydown', handleKey)
+input.addEventListener('input', handleInputCaret)
+document.addEventListener('click', inputFocus)
+document.addEventListener('mouseenter', () => caret.classList.remove('hide'))
+document.addEventListener('mouseleave', () => caret.classList.add('hide'))
+document.addEventListener('keydown', handleCancelCommand)

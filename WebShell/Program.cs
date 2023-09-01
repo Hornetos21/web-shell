@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -18,3 +20,5 @@ app.UseStaticFiles();
 app.MapControllers();
 
 app.Run();
+
+Console.WriteLine(Process.GetCurrentProcess().Id);

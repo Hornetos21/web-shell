@@ -1,6 +1,7 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using WebShell.Helpers;
 
 namespace WebShell.Controllers;
 
@@ -46,23 +47,15 @@ public class WebSocketController : ControllerBase
                 {
                     /* Cancel process */
                     Console.WriteLine("CANCEL");
-                    
-                    try
-                    {
-                        KeyHandleCtrlC.StopProcess(shell.GetIdProcess());
 
-                        // shell.CmdProcess.CancelOutputRead();
-                        // shell.CmdProcess.CancelErrorRead();
+                    KeyHandleCtrlC.StopProcess(shell.GetIdProcess());
 
-                        _canWrite = "CAN_WRITE_TRUE";
-                        WS_SEND(webSocket, _canWrite);
-                        Console.WriteLine("WS_SEND_CANCEL_STREAM -> cawWrite");
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e);
-                        throw;
-                    }
+                    // shell.CmdProcess.CancelOutputRead();
+                    // shell.CmdProcess.CancelErrorRead();
+
+                    _canWrite = "CAN_WRITE_TRUE";
+                    WS_SEND(webSocket, _canWrite);
+                    Console.WriteLine("WS_SEND_CANCEL_STREAM -> cawWrite");
 
                     /* Pending new command */
                     _receiveResult = await WS_RECEIVE(webSocket);

@@ -1,7 +1,8 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 
-namespace WebShell.Controllers;
-
+namespace WebShell.Helpers;
+// https://blog.codetitans.pl/post/sending-ctrl-c-signal-to-another-application-on-windows/
 class KeyHandleCtrlC
 {
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -32,8 +33,13 @@ class KeyHandleCtrlC
     
     public static void StopProcess(uint pid)
     {
+        // var parentProc = Process.GetProcessesByName("JetBrains.DPA.Runner");
+        // var parentProc = Process.GetProcessesByName("JetBrains.Debugger.Worker64c");
+        // var parentId = (uint)parentProc[0].Id;
+        
         // It's impossible to be attached to 2 consoles at the same time,
         // so release the current one.
+        var currentProcessId = (uint)Process.GetCurrentProcess().Id;
         FreeConsole();
     
         // This does not require the console window to be visible.
@@ -46,12 +52,14 @@ class KeyHandleCtrlC
             // Must wait here. If we don't and re-enable Ctrl-C
             // handling below too fast, we might terminate ourselves.
             Thread.Sleep(2000);
-    
-            // FreeConsole();
+
+            // FIX
+            AttachConsole(currentProcessId);
     
             // Re-enable Ctrl-C handling or any subsequently started
             // programs will inherit the disabled state.
             SetConsoleCtrlHandler(null, false);
+            
         }
     }
 }

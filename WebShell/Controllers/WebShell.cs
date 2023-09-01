@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-// TODO Create Dictionary for id process and id session
+
 namespace WebShell.Controllers;
 
 public class WebShell
@@ -10,8 +10,6 @@ public class WebShell
 
     public void CommandRequest(string command)
     {
-        // Console.CancelKeyPress += Console_CancelKeyPress;
-
         CmdProcess = new Process();
         CmdProcess.StartInfo = new ProcessStartInfo()
         {
@@ -21,7 +19,7 @@ public class WebShell
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            RedirectStandardInput = true,
+            // RedirectStandardInput = true,
         };
     }
 
